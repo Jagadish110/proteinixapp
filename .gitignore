@@ -1,0 +1,64 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Release signing material. Never commit these — the keystore is the only
+# thing that can ever update this app, and the password sits beside it.
+key.properties
+**/*.jks
+**/*.keystore
+
+# Secrets that ship inside the APK and must never reach the remote.
+# .env holds the Supabase URL and anon key, the Google OAuth client ids and the
+# RevenueCat key. Committing it once means rotating all of them, because git
+# history keeps a public copy forever.
+.env
+.env.*
+!.env.example
+
+# Built artifacts. An APK is ~84MB, so a handful of them outgrow a source
+# repository faster than the source ever will.
+*.apk
+*.aab

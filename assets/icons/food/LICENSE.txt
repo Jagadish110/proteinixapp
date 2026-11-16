@@ -1,0 +1,15 @@
+All emojis designed by OpenMoji (https://openmoji.org/) – the open-source
+emoji and icon project. License: CC BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/)
+
+[The line above is OpenMoji's own suggested attribution wording, kept verbatim.]
+
+Applies to every SVG in this directory's color/ and mono/ subfolders.
+Repo: https://github.com/hfg-gmuend/openmoji
+
+Files are unmodified SVGs, renamed from their Unicode codepoint to the
+FoodCategory they represent (see lib/core/utils/food_icon_resolver.dart).
+
+CC BY-SA 4.0 requires that this attribution ship with the app. It is registered
+with Flutter's LicenseRegistry in main.dart, which surfaces it in the standard
+licence page.

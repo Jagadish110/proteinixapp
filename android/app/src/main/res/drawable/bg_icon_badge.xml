@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tinted circle behind the moon glyph, matching the app's IconBubble(tinted:true) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#26C4F030"/>
+</shape>

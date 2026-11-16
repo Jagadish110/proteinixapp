@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Peach primary pill (matches PillTone.primary) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFB59C"/>
+    <corners android:radius="27dp"/>
+</shape>

@@ -1,0 +1,71 @@
+name: proteinix
+description: Proteinix - AI-powered fitness and nutrition tracking app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  supabase_flutter: ^2.5.6
+  # Native Android account picker for Google sign-in. signInWithOAuth hands off
+  # to a Custom Tab, which means browser chrome, a consent page and a deep link
+  # back; this shows the system account sheet and returns an ID token we
+  # exchange with Supabase directly.
+  #
+  # Pinned to 6.x deliberately. 7.x routes through Android's Credential Manager,
+  # which on this project's test device (Infinix/XOS) opened the account sheet
+  # and then dismissed it reporting a plain "canceled" — indistinguishable from
+  # the user tapping away, and impossible to debug. 6.x uses the classic Google
+  # Sign-In SDK, which surfaces the real `ApiException` status codes (10 =
+  # DEVELOPER_ERROR for a SHA-1/package mismatch) and is what the Supabase
+  # Flutter docs are written against.
+  google_sign_in: ^6.3.0
+  camera: ^0.11.0
+  image_picker: ^1.1.2
+  image: ^4.1.7
+  permission_handler: ^11.3.1
+  fl_chart: ^0.68.0
+  shared_preferences: ^2.2.3
+  intl: ^0.19.0
+  flutter_local_notifications: ^17.2.2
+  go_router: ^14.2.0
+  timezone: ^0.9.4
+  # Reminders are scheduled against tz.local; without the device's real zone
+  # every alarm lands at the wrong wall-clock time for anyone outside IST.
+  flutter_timezone: ^4.1.1
+  flutter_dotenv: ^5.1.0
+  uuid: ^4.4.0
+  google_fonts: ^6.2.1
+  url_launcher: ^6.3.0
+  pedometer: ^4.2.0
+  app_links: ^6.3.4
+  speech_to_text: ^7.0.0
+  purchases_flutter: ^10.7.0
+  flutter_svg: ^2.0.10+1
+  # ── Offline-first storage ────────────────────────────────────────────────
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  connectivity_plus: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.0
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
+    - assets/icons/food/
+    - assets/icons/food/color/
+    - assets/icons/food/mono/
+    - assets/icons/food/photo/

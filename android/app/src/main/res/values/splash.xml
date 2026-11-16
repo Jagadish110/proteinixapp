@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Black, matching AppColors.background. The logo is drawn for a
+         black plate — its P stem is white and would vanish on light —
+         and matching the app's own background is what makes the
+         handover from splash to first frame invisible. -->
+    <color name="splash_background">#000000</color>
+</resources>
