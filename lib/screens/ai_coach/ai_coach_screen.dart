@@ -9,7 +9,10 @@ import '../../providers/daily_log_provider.dart';
 import '../../core/errors/ai_quota_exceeded_exception.dart';
 import '../../services/gemini_service.dart';
 import '../../widgets/ui/ui.dart';
+import '../../core/utils/coach_nudge.dart';
+import '../../core/utils/date_utils.dart';
 import '../../core/utils/entitlement_gate.dart';
+import '../../services/plan_limits.dart';
 import '../../core/utils/require_account.dart';
 
 class _ChatMessage {
@@ -61,10 +64,32 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     // sign up is the wrong order.
     if (!await requireAccount(context, action: 'chat with your coach')) return;
     if (!mounted) return;
-    // Free for the first three days, then premium. See requireEntitlement:
-    // it shows the paywall itself and returns true if the user subscribes on
-    // the spot, so this tap completes rather than needing to be repeated.
-    if (!await requireEntitlement(context, ref)) return;
+    // A Pro feature. See requireEntitlement: it shows the paywall itself and
+    // returns true if the user subscribes on the spot, so this tap completes
+    // rather than needing to be repeated.
+    if (!await requireEntitlement(context, ref, feature: ProFeature.coach)) {
+      return;
+    }
+
+    // Everyone gets the same daily ceiling on coach messages, Pro included.
+    // Said in the chat rather than a dialog, so the conversation so far stays
+    // on screen and the user can still read the last answer.
+    if (await PlanLimits.coachMessagesLeft() <= 0) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_ChatMessage(text: text, fromUser: true));
+        _messages.add(_ChatMessage(
+          fromUser: false,
+          text: "That's today's ${PlanLimits.coachMessagesPerDay} coach "
+              'messages. I will be back tomorrow — your nudge above keeps '
+              'updating in the meantime.',
+        ));
+      });
+      _input.clear();
+      _scrollToBottom();
+      return;
+    }
+    if (!mounted) return;
 
     setState(() {
       _messages.add(_ChatMessage(text: text, fromUser: true));
@@ -102,6 +127,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
             .toList(),
         userMessage: text,
       );
+      // Only a message that was actually answered counts against the day.
+      await PlanLimits.recordCoachMessage();
       if (!mounted) return;
       setState(() {
         _thinking = false;
@@ -153,6 +180,13 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
           child: Column(
             children: [
               _topBar(false),
+              // The nudge is arithmetic on local data, so it is the one part
+              // of this tab that still works with no connection.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page, AppSpacing.xs, AppSpacing.page, 0),
+                child: _nudgeCard(askable: false),
+              ),
               const Expanded(
                 child: OfflineAIWidget(featureName: 'AI Coach'),
               ),
@@ -215,45 +249,108 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     );
   }
 
-  Widget _emptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const IconBubble(
+  /// Today's nudge — the main thing this tab is for.
+  ///
+  /// Rebuilt from the same providers the dashboard reads, so logging a meal
+  /// changes it immediately. [askable] is false offline, where the follow-up
+  /// question would have nowhere to go.
+  Widget _nudgeCard({bool askable = true}) {
+    final profile = ref.watch(profileProvider).value;
+    if (profile == null) return const SizedBox.shrink();
+    // Always today, whatever day the dashboard happens to be showing — a
+    // nudge about last Tuesday is not something anyone can act on.
+    final today = AppDateUtils.toDateOnly(DateTime.now());
+    final log = ref.watch(dailyLogProvider(today));
+    final nudge = CoachNudge.forToday(profile, log, DateTime.now());
+
+    final (icon, color) = switch (nudge.kind) {
+      CoachNudgeKind.protein => (Icons.bolt_rounded, AppColors.primary),
+      CoachNudgeKind.calories => (
+          Icons.local_fire_department_rounded,
+          AppColors.tertiary
+        ),
+      CoachNudgeKind.water => (Icons.water_drop_rounded, AppColors.secondary),
+      CoachNudgeKind.start => (Icons.restaurant_rounded, AppColors.primary),
+      CoachNudgeKind.onTrack => (
+          Icons.check_circle_rounded,
+          AppColors.secondary
+        ),
+    };
+
+    return TerraCard(
+      borderColor: color.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconBubble(icon: icon, color: color, size: 40, tinted: true),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("TODAY'S NUDGE",
+                        style: AppText.labelCaps(
+                            color: AppColors.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    Text(nudge.headline, style: AppText.headlineMd()),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(nudge.body, style: AppText.body()),
+          if (askable) ...[
+            const SizedBox(height: AppSpacing.sm),
+            PillButton(
+              label: 'Ask the coach about this',
               icon: Icons.auto_awesome_rounded,
-              color: AppColors.secondary,
-              size: 56,
-              tinted: true,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text('How can I help today?',
-                textAlign: TextAlign.center, style: AppText.headlineLg()),
-            const SizedBox(height: 8),
-            Text(
-              "Ask about your macros, hydration, sleep or what to eat "
-              "next — I can see today's numbers.",
-              textAlign: TextAlign.center,
-              style: AppText.body(color: AppColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: _prompts
-                  .map((p) => MiniPill(
-                        label: p.$2,
-                        icon: p.$1,
-                        background: AppColors.surfaceContainer,
-                        onTap: () => _send(p.$2),
-                      ))
-                  .toList(),
+              height: 48,
+              glow: false,
+              onPressed: _thinking ? null : () => _send(nudge.followUp),
             ),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.page, AppSpacing.xs, AppSpacing.page, AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _nudgeCard(),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Or ask anything',
+              textAlign: TextAlign.center, style: AppText.headlineMd()),
+          const SizedBox(height: 8),
+          Text(
+            "Macros, hydration, sleep or what to eat next — I can see "
+            "today's numbers.",
+            textAlign: TextAlign.center,
+            style: AppText.body(color: AppColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: _prompts
+                .map((p) => MiniPill(
+                      label: p.$2,
+                      icon: p.$1,
+                      background: AppColors.surfaceContainer,
+                      onTap: () => _send(p.$2),
+                    ))
+                .toList(),
+          ),
+        ],
       ),
     );
   }

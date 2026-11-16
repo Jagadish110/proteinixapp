@@ -6,14 +6,18 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/theme/app_typography.dart';
+import '../../services/notification_service.dart';
+import '../../services/plan_limits.dart';
 import '../../services/subscription_service.dart';
 import '../../widgets/ui/ui.dart';
 
-/// Profile → Subscription: shows the account's current plan and renewal
-/// status if premium, or pricing + an upsell into the paywall if not.
-/// Pricing shown here (₹199/mo, ₹1,499/yr) must match whatever products are
-/// actually created in Google Play Console — this screen only displays
-/// them, it can't set them.
+/// Profile → Subscription: the account's current plan and renewal status if
+/// on Pro, with a one-tap cancel, or what Free includes plus an upsell into
+/// the paywall if not.
+///
+/// Prices are read from the store offering, so they always match what Play
+/// will charge. The ₹49 / ₹399 fallbacks are only shown when the offering
+/// cannot be loaded (offline, or the products not yet live).
 class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
 
@@ -23,6 +27,7 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   CustomerInfo? _info;
+  Offering? _offering;
   bool _loading = true;
 
   @override
@@ -35,9 +40,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     setState(() => _loading = true);
     try {
       final info = await Purchases.getCustomerInfo();
+      final offering = await SubscriptionService.instance.getOffering();
+      // A trial cancelled in Play, or one that has converted, no longer needs
+      // its "ends soon" reminder.
+      final e = info.entitlements.active[SubscriptionService.entitlementId];
+      if (e == null || e.periodType != PeriodType.trial || !e.willRenew) {
+        await NotificationService.cancelTrialEndingReminder();
+      }
       if (!mounted) return;
       setState(() {
         _info = info;
+        _offering = offering;
         _loading = false;
       });
     } catch (_) {
@@ -77,12 +90,28 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                   entitlement != null ? _activeCard(entitlement) : _freeCard(),
                   if (entitlement != null && _info?.managementURL != null) ...[
                     const SizedBox(height: AppSpacing.md),
+                    // One tap from here to Google Play's own cancel screen for
+                    // this subscription. Play is the only place a Play
+                    // subscription can be cancelled, so the honest version of
+                    // "one-tap cancel" is a button that goes straight there.
                     PillButton(
-                      label: 'Manage subscription',
+                      label: entitlement.willRenew
+                          ? 'Cancel subscription'
+                          : 'Manage in Google Play',
                       tone: PillTone.outline,
                       icon: Icons.open_in_new_rounded,
                       glow: false,
                       onPressed: () => _openManagement(_info!.managementURL!),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      entitlement.willRenew
+                          ? 'Opens Google Play. You keep Pro until the end of '
+                              'the period you have already paid for.'
+                          : 'Renewal is off. You keep Pro until it ends.',
+                      textAlign: TextAlign.center,
+                      style:
+                          AppText.bodySm(color: AppColors.onSurfaceVariant),
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),
@@ -103,9 +132,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Widget _activeCard(EntitlementInfo e) {
     final expiry =
         e.expirationDate != null ? DateTime.tryParse(e.expirationDate!) : null;
-    final planLabel = e.productIdentifier.toLowerCase().contains('annual')
-        ? 'Annual'
-        : 'Monthly';
+    final id = e.productIdentifier.toLowerCase();
+    final planLabel =
+        (id.contains('annual') || id.contains('year')) ? 'Yearly' : 'Monthly';
+    final onTrial = e.periodType == PeriodType.trial;
 
     return TerraCard(
       child: Row(
@@ -121,14 +151,18 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Premium — $planLabel', style: AppText.headlineMd()),
+                Text(onTrial ? 'Pro — free trial' : 'Pro — $planLabel',
+                    style: AppText.headlineMd()),
                 const SizedBox(height: 2),
                 Text(
                   expiry == null
                       ? 'Active'
-                      : e.willRenew
-                          ? 'Renews ${_fmt(expiry)}'
-                          : 'Ends ${_fmt(expiry)} — not renewing',
+                      : !e.willRenew
+                          ? 'Ends ${_fmt(expiry)} — not renewing'
+                          : onTrial
+                              ? 'Trial ends ${_fmt(expiry)}, then renews '
+                                  '${planLabel.toLowerCase()}'
+                              : 'Renews ${_fmt(expiry)}',
                   style: AppText.bodySm(color: AppColors.onSurfaceVariant),
                 ),
               ],
@@ -158,8 +192,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     Text('Free plan', style: AppText.headlineMd()),
                     const SizedBox(height: 2),
                     Text(
-                      'AI food scanning, voice logging and AI Coach are '
-                      'Premium features.',
+                      '${PlanLimits.freeScansPerDay} photo scans a day. '
+                      'Search, barcode logging and your dashboard are '
+                      'always free.',
                       style: AppText.bodySm(color: AppColors.onSurfaceVariant),
                     ),
                   ],
@@ -170,18 +205,30 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           const SizedBox(height: AppSpacing.md),
           const Divider(color: AppColors.outline),
           const SizedBox(height: AppSpacing.sm),
-          _priceRow('Monthly', '₹199 / mo'),
+          Text('Pro adds unlimited scans, voice logging, the AI Coach and '
+              'no ads.',
+              style: AppText.bodySm(color: AppColors.onSurfaceVariant)),
+          const SizedBox(height: AppSpacing.sm),
+          _priceRow('Monthly', _price(_offering?.monthly, '₹49', 'mo')),
           const SizedBox(height: 8),
-          _priceRow('Annual', '₹1,499 / yr — save 37%'),
+          _priceRow('Yearly', _price(_offering?.annual, '₹399', 'yr')),
           const SizedBox(height: AppSpacing.md),
           PillButton(
-            label: 'Upgrade to Premium',
+            label: 'Go Pro',
             icon: Icons.auto_awesome_rounded,
             onPressed: _upgrade,
           ),
         ],
       ),
     );
+  }
+
+  /// The store's own price for [p], with the trial it carries if any.
+  static String _price(Package? p, String fallback, String per) {
+    if (p == null) return '$fallback / $per';
+    final price = '${p.storeProduct.priceString} / $per';
+    final days = SubscriptionService.freeTrialDays(p);
+    return days > 0 ? '$price · $days days free' : price;
   }
 
   Widget _priceRow(String label, String price) {

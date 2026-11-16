@@ -341,7 +341,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         const SizedBox(height: AppSpacing.sm),
         TerraListRow(
           title: 'Subscription',
-          subtitle: 'Manage your Premium plan',
+          subtitle: 'Free or Pro — manage your plan',
           icon: Icons.workspace_premium_outlined,
           iconColor: AppColors.primary,
           trailing: const Icon(Icons.chevron_right_rounded,

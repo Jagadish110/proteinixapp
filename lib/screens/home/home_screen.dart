@@ -27,6 +27,8 @@ import '../../services/supabase_service.dart';
 import '../../services/sync_service.dart';
 import '../../services/weight_checkin_service.dart';
 import '../../widgets/sleep_cycle_switch.dart';
+import '../../widgets/home_banner_ad.dart';
+import 'home_prompts.dart';
 import '../../widgets/ui/ui.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -561,6 +563,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         profile: profile,
                         streak: ref.watch(proteinStreakProvider)),
                     const SizedBox(height: AppSpacing.md),
+                    // Both render nothing unless they have something to say.
+                    WelcomeBackCard(name: profile?.name),
+                    const UsualMealCard(),
                     _carouselSection(profile, log),
                     const SizedBox(height: AppSpacing.md),
                     _StepsCard(profile: profile, log: log, pedo: _pedo),
@@ -586,6 +591,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     // No loading/error branch: the list comes straight out of Hive,
                     // so it is either present or genuinely empty — never pending.
                     _MealsList(meals: meals),
+                    // The app's only ad: one banner, here, for users not on
+                    // Pro. Takes no space when there is nothing to show.
+                    const HomeBannerAd(),
                   ],
                 ),
               ),

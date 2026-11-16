@@ -10,7 +10,12 @@ import '../../models/meal_slot.dart';
 import '../../providers/meal_schedule_provider.dart';
 import '../../services/meal_schedule_service.dart';
 import '../../providers/daily_log_provider.dart';
+import '../../core/utils/entitlement_gate.dart';
+import '../../services/plan_limits.dart';
+import '../../services/routine_logger.dart';
 import '../../services/routine_service.dart';
+import '../../services/subscription_service.dart';
+import 'routine_sheets.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/ui/ui.dart';
 
@@ -414,6 +419,10 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       ];
   List<SavedRoutine> _routines = const [];
 
+  /// Free photo scans left today, or null when it does not apply — the plan
+  /// split is off, the user is on Pro, or it has not loaded yet.
+  int? _freeScansLeft;
+
   @override
   void initState() {
     super.initState();
@@ -431,6 +440,14 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         if (mounted) setState(() => _routines = r);
       });
     }
+    _loadFreeScans();
+  }
+
+  Future<void> _loadFreeScans() async {
+    if (!kEnforcePremium) return;
+    if (await SubscriptionService.instance.isEntitled()) return;
+    final left = await PlanLimits.freeScansLeft();
+    if (mounted) setState(() => _freeScansLeft = left);
   }
 
   @override
@@ -507,34 +524,23 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     }
   }
 
-  Future<void> _logRoutine(SavedRoutine r) async {
+  /// Logs a saved meal. One tap logs a single portion; [portions] comes from
+  /// the portion sheet when the user wants half, or two.
+  Future<void> _logRoutine(SavedRoutine r, {double portions = 1}) async {
     final uid = SupabaseService.currentUserId;
     if (uid == null) return;
-    final date = AppDateUtils.toDateOnly(DateTime.now());
     try {
-      for (final item in r.items) {
-        await MealService.addMeal(
-          ref,
-          Meal(
-            userId: uid,
-            date: date,
-            mealType: _mealType,
-            foodName: item.name,
-            quantity: item.quantity,
-            unit: item.unit,
-            calories: item.calories,
-            proteinG: item.proteinG,
-            carbsG: item.carbsG,
-            fatG: item.fatG,
-            fiberG: item.fiberG,
-            logMethod: 'quick',
-          ),
-        );
-      }
+      final kcal = await RoutineLogger.log(
+        ref,
+        uid: uid,
+        routine: r,
+        mealType: _mealType,
+        portions: portions,
+      );
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${r.name} logged — ${r.totalCalories} kcal.')),
+        SnackBar(content: Text('${r.name} logged — $kcal kcal.')),
       );
     } catch (_) {
       if (!mounted) return;
@@ -542,6 +548,40 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         SnackBar(content: Text("Couldn't log ${r.name} — try again.")),
       );
     }
+  }
+
+  Future<void> _logRoutineByPortion(SavedRoutine r) async {
+    final portions = await showPortionSheet(
+      context,
+      routine: r,
+      mealLabel: MealScheduleService.labelFor(
+          ref.read(mealScheduleProvider), _mealType),
+    );
+    if (portions != null) await _logRoutine(r, portions: portions);
+  }
+
+  Future<void> _addOwnDish() async {
+    final uid = SupabaseService.currentUserId;
+    if (uid == null) return;
+    final saved = await showOwnDishSheet(context, uid: uid);
+    if (saved == null || !mounted) return;
+    setState(() => _routines = [saved, ..._routines]);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${saved.name} saved to Quick Picks.')),
+    );
+  }
+
+  /// "1 katori · 180 kcal" for a single dish, "3 items · 540 kcal" for a
+  /// saved meal made of several.
+  static String _routineSubtitle(SavedRoutine r) {
+    if (r.items.length == 1) {
+      final i = r.items.first;
+      final qty = i.quantity == i.quantity.roundToDouble()
+          ? i.quantity.toInt().toString()
+          : i.quantity.toString();
+      return '$qty ${i.unit} · ${r.totalCalories} kcal';
+    }
+    return '${r.items.length} items · ${r.totalCalories} kcal';
   }
 
   @override
@@ -611,32 +651,65 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
             const SizedBox(height: 12),
             _bigAction(
               title: 'Scan with camera',
-              subtitle: 'Point at your plate and let Proteinix estimate',
+              subtitle: _freeScansLeft == null
+                  ? 'Point at your plate and let Proteinix estimate'
+                  : _freeScansLeft == 0
+                      ? "Today's ${PlanLimits.freeScansPerDay} free scans are "
+                          'used — unlimited on Pro'
+                      : '$_freeScansLeft of ${PlanLimits.freeScansPerDay} '
+                          'free scans left today',
               icon: Icons.photo_camera_rounded,
               color: AppColors.tertiary,
-              onTap: () => context.push('/scan', extra: _mealType),
+              onTap: () async {
+                await context.push('/scan', extra: _mealType);
+                // A scan may just have been used.
+                if (mounted) _loadFreeScans();
+              },
+            ),
+            const SizedBox(height: 12),
+            _bigAction(
+              title: 'Scan barcode',
+              subtitle: 'Packaged food, straight from the label — free',
+              icon: Icons.qr_code_scanner_rounded,
+              color: AppColors.secondary,
+              onTap: () => context.push('/barcode', extra: _mealType),
             ),
             const SizedBox(height: AppSpacing.md),
-            if (_routines.isNotEmpty) ...[
-              const SectionHeading('Quick Picks'),
-              const SizedBox(height: AppSpacing.sm),
-              ..._routines.take(4).map(
+            SectionHeading(
+              'Quick Picks',
+              actionLabel: 'Add your own dish',
+              onAction: _addOwnDish,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_routines.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Dishes you save show up here, ready to log in one tap.',
+                  style: AppText.bodySm(color: AppColors.onSurfaceVariant),
+                ),
+              )
+            else
+              ..._routines.take(6).map(
                     (r) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: TerraListRow(
                         title: r.name,
-                        subtitle:
-                            '${r.items.length} items · ${r.totalCalories} kcal',
+                        subtitle: _routineSubtitle(r),
                         icon: Icons.history_rounded,
                         iconColor: AppColors.primary,
-                        trailing: const Icon(Icons.chevron_right_rounded,
-                            color: AppColors.onSurfaceVariant),
+                        // The row itself logs one portion in a single tap;
+                        // this is the way in for half, or two.
+                        trailing: MiniPill(
+                          label: 'Portions',
+                          background: AppColors.surfaceContainerHigh,
+                          onTap: () => _logRoutineByPortion(r),
+                        ),
                         onTap: () => _logRoutine(r),
                       ),
                     ),
                   ),
-              const SizedBox(height: AppSpacing.md),
-            ],
+            const SizedBox(height: AppSpacing.md),
             SectionHeading(query.isEmpty ? 'Suggested Foods' : 'Results'),
             const SizedBox(height: AppSpacing.sm),
             if (results.isEmpty)

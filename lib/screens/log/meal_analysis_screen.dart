@@ -12,6 +12,7 @@ import '../../providers/meal_schedule_provider.dart';
 import '../../services/meal_schedule_service.dart';
 import '../../widgets/ui/ui.dart';
 import 'analysis_results_screen.dart';
+import '../../services/plan_limits.dart';
 import '../../core/utils/entitlement_gate.dart';
 
 /// Confirmation step between capture and analysis.
@@ -118,10 +119,12 @@ class _MealAnalysisScreenState extends ConsumerState<MealAnalysisScreen> {
 
   Future<void> _analyze() async {
     if (_analyzing) return;
-    // Free for the first three days, then premium. See requireEntitlement:
-    // it shows the paywall itself and returns true if the user subscribes on
-    // the spot, so this tap completes rather than needing to be repeated.
-    if (!await requireEntitlement(context, ref)) return;
+    // Three free scans a day, unlimited on Pro. See requireEntitlement: it shows the paywall itself and
+    // returns true if the user subscribes on the spot, so this tap completes
+    // rather than needing to be repeated.
+    if (!await requireEntitlement(context, ref, feature: ProFeature.photoScan)) {
+      return;
+    }
     setState(() {
       _analyzing = true;
       _error = null;
@@ -141,6 +144,11 @@ class _MealAnalysisScreenState extends ConsumerState<MealAnalysisScreen> {
                 'or describe the dish in the box above and try again.');
         return;
       }
+
+      // Counted only now, once there is a result worth having: a failed
+      // analysis or an empty plate must not cost one of the day's free scans.
+      await PlanLimits.recordScan();
+      if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

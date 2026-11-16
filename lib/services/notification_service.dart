@@ -63,6 +63,7 @@ class NotificationService {
   static const _sleepChannelId = 'sleep_reminders_v4';
   static const _liveChannelId = 'live_progress_v4';
   static const _setupChannelId = 'setup_v1';
+  static const _accountChannelId = 'account_v1';
 
   /// The app's own notification sound, from `res/raw/proteinix_chime.wav`.
   ///
@@ -106,6 +107,10 @@ class NotificationService {
   /// drop a follow-up, and a follow-up must not survive [clear] on completion.
   static const onboardingBaseId = 500;
   static const onboardingSlots = 2;
+
+  /// The one-off "your free trial ends soon" reminder. Outside every range
+  /// [cancelReminders] clears, for the same reason as the onboarding ones.
+  static const trialReminderId = 510;
 
   static const testId = 999;
 
@@ -261,6 +266,14 @@ class NotificationService {
         'Finish Setup',
         description: 'A nudge to complete your profile if you leave part-way',
         importance: Importance.defaultImportance,
+        playSound: true,
+        sound: _chime,
+      ),
+      AndroidNotificationChannel(
+        _accountChannelId,
+        'Subscription',
+        description: 'A reminder before a free trial ends',
+        importance: Importance.high,
         playSound: true,
         sound: _chime,
       ),
@@ -980,6 +993,89 @@ class NotificationService {
 
   static Future<void> cancelOnboardingFollowUp() =>
       _cancelRange(onboardingBaseId, onboardingBaseId + onboardingSlots);
+
+  /// How long before a free trial ends the reminder goes out.
+  static const trialReminderLead = Duration(days: 2);
+
+  /// When to remind about a trial ending at [trialEnd], or null if that
+  /// moment has already passed.
+  ///
+  /// Two days ahead, moved to 10:00 local on that day so it never lands at
+  /// 3am — the trial ends at the minute it was started plus seven days, and
+  /// people start trials at all hours.
+  @visibleForTesting
+  static DateTime? trialReminderTime(DateTime trialEnd, DateTime now) {
+    final target = trialEnd.subtract(trialReminderLead);
+    var when = DateTime(target.year, target.month, target.day, 10);
+    // 10:00 can fall after `target` on the same day, which would shave the
+    // notice period to under two days. Earlier is the safe direction.
+    if (when.isAfter(target)) when = when.subtract(const Duration(days: 1));
+    if (!when.isAfter(now)) {
+      // Less than the lead time left (a short trial, or a restore late in
+      // one): remind in an hour rather than not at all, as long as the trial
+      // is still running by then.
+      final soon = now.add(const Duration(hours: 1));
+      return soon.isBefore(trialEnd) ? soon : null;
+    }
+    return when;
+  }
+
+  /// Books the "your free trial ends soon" reminder.
+  ///
+  /// Part of the trial's terms, not a marketing message: the user is told on
+  /// the paywall that they will be reminded before they are charged, so this
+  /// is scheduled the moment a trial starts and survives [cancelReminders].
+  static Future<void> scheduleTrialEndingReminder({
+    required DateTime trialEnd,
+    required String priceLabel,
+  }) async {
+    await init();
+    await _refreshExactAlarmCapability();
+    await cancelTrialEndingReminder();
+    if (!await areNotificationsEnabled()) return;
+
+    final when = trialReminderTime(trialEnd.toLocal(), DateTime.now());
+    if (when == null) return;
+
+    final end = trialEnd.toLocal();
+    final endLabel = '${end.day}/${end.month}/${end.year}';
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _accountChannelId,
+        'Subscription',
+        channelDescription: 'A reminder before a free trial ends',
+        importance: Importance.high,
+        priority: Priority.high,
+        sound: _chime,
+      ),
+    );
+
+    final mode = _exactAlarmsAllowed
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+
+    try {
+      await _plugin.zonedSchedule(
+        trialReminderId,
+        'Your free trial ends on $endLabel',
+        'After that Proteinix Pro renews at $priceLabel. Keep it, or cancel '
+            'any time in one tap from Profile → Subscription.',
+        tz.TZDateTime.from(when, tz.local),
+        details,
+        androidScheduleMode: mode,
+        // No matchDateTimeComponents: this fires once, not every day.
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'subscription',
+      );
+    } catch (e, st) {
+      await CrashLog.record('Trial reminder failed: $e', st);
+    }
+  }
+
+  static Future<void> cancelTrialEndingReminder() =>
+      _plugin.cancel(trialReminderId);
 
   /// Clears every scheduled reminder but leaves one-off goal alerts alone.
   static Future<void> cancelReminders() async {

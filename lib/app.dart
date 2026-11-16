@@ -8,6 +8,8 @@ import 'core/constants/strings.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/auth/email_confirmation_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'core/utils/entitlement_gate.dart';
+import 'screens/scan/barcode_scan_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/auth/splash_screen.dart';
@@ -132,7 +134,16 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
               FoodScannerScreen(mealType: state.extra as String?),
         ),
         GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-        GoRoute(path: '/paywall', builder: (_, __) => const PaywallScreen()),
+        GoRoute(
+          path: '/paywall',
+          builder: (_, state) =>
+              PaywallScreen(feature: state.extra as ProFeature?),
+        ),
+        GoRoute(
+          path: '/barcode',
+          builder: (_, state) =>
+              BarcodeScanScreen(mealType: state.extra as String?),
+        ),
         GoRoute(
             path: '/subscription',
             builder: (_, __) => const SubscriptionScreen()),
@@ -223,6 +234,13 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
     }
     if (target == 'sleep') {
       _router.go('/sleep');
+      return;
+    }
+    // The "your free trial ends soon" reminder. Lands on the screen with the
+    // cancel button, since deciding whether to keep Pro is what it is about.
+    if (target == 'subscription') {
+      _router.go('/home');
+      unawaited(_router.push('/subscription'));
       return;
     }
     // The "finish setting up" nudge. Straight back into the wizard, which

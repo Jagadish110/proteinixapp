@@ -58,7 +58,51 @@ cp .env.example .env
 # Fill in keys
 ```
 
-### 6. Build
+Optional keys, all off when absent:
+
+```bash
+# Turns the Free / Pro split on. Leave unset until the Play products and the
+# RevenueCat `premium` entitlement exist, or the paywall has nothing to sell.
+ENFORCE_PREMIUM=true
+
+# AdMob. With no banner unit the ad SDK is never started and no ad is shown.
+# Without an app id the build uses Google's sample id (test ads only).
+ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+ADMOB_BANNER_UNIT_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+```
+
+### 6. Plans (Free / Pro)
+
+| | Free | Pro |
+|---|---|---|
+| Search, barcode, saved meals, dashboard | unlimited | unlimited |
+| Photo scans | 3 a day | unlimited |
+| AI text and voice logging | — | included |
+| AI Coach (30 messages a day) | — | included |
+| Banner ad on the home dashboard | yes | no |
+
+Set up in Play Console and RevenueCat, not in code:
+
+1. Two subscriptions in Play Console: monthly at ₹49 and yearly at ₹399.
+2. A 7-day free-trial offer on the **yearly** base plan only.
+3. In RevenueCat, attach both to one offering and to the entitlement `premium`
+   (the identifier stays `premium`; the app calls the plan "Pro").
+
+The paywall reads prices and the trial from the store, so it shows whatever is
+configured there. The trial reminder is a local notification two days before
+the trial ends; cancelling is one tap from Profile → Subscription, which opens
+Google Play's cancel screen for the subscription.
+
+The 3-scans and 30-messages limits are counted on the device
+(`lib/services/plan_limits.dart`). The server-side quota in `gemini-proxy` is
+unchanged and remains the hard ceiling.
+
+**Ads and health data.** The only ad is one banner at the bottom of the home
+dashboard (`lib/widgets/home_banner_ad.dart`). Requests carry no keywords, user
+id or any app data — see the rules at the top of `lib/services/ad_service.dart`.
+Health Connect steps and sleep must never be passed to the ad SDK.
+
+### 7. Build
 ```bash
 flutter pub get
 flutter run            # debug build on connected device

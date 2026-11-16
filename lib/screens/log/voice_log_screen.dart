@@ -105,10 +105,12 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen> {
   Future<void> _analyze() async {
     final text = _editor.text.trim();
     if (text.isEmpty || _analyzing) return;
-    // Free for the first three days, then premium. See requireEntitlement:
-    // it shows the paywall itself and returns true if the user subscribes on
-    // the spot, so this tap completes rather than needing to be repeated.
-    if (!await requireEntitlement(context, ref)) return;
+    // A Pro feature. See requireEntitlement: it shows the paywall itself and
+    // returns true if the user subscribes on the spot, so this tap completes
+    // rather than needing to be repeated.
+    if (!await requireEntitlement(context, ref, feature: ProFeature.voiceLog)) {
+      return;
+    }
 
     if (_listening) await _voice.stop();
     setState(() {
