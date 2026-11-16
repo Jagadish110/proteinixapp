@@ -299,9 +299,8 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
     return MaterialApp.router(
       title: AppStrings.appFullName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light,
+      themeMode: ThemeMode.light,
       routerConfig: _router,
     );
   }

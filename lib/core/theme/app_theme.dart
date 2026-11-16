@@ -4,21 +4,22 @@ import 'app_colors.dart';
 import 'app_dimens.dart';
 import 'app_typography.dart';
 
-/// Vigor Obsidian is dark-only by design — there is no light variant.
+/// The app has one appearance: the light Proteinix theme. There is no dark
+/// variant, and the system's dark-mode setting does not change it.
 class AppTheme {
   const AppTheme._();
 
   static const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
     systemNavigationBarColor: AppColors.background,
-    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarIconBrightness: Brightness.dark,
   );
 
-  static ThemeData get dark {
+  static ThemeData get light {
     const scheme = ColorScheme(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       primary: AppColors.primary,
       onPrimary: AppColors.onPrimary,
       primaryContainer: AppColors.primaryContainer,
@@ -55,7 +56,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
@@ -154,12 +155,12 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
-              ? AppColors.onSurface
+              ? AppColors.onPrimary
               : AppColors.onSurfaceVariant,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
-              ? AppColors.secondaryContainer
+              ? AppColors.primary
               : AppColors.surfaceContainerHigh,
         ),
         trackOutlineColor: const WidgetStatePropertyAll(AppColors.outline),
@@ -168,7 +169,7 @@ class AppTheme {
         activeTrackColor: AppColors.primary,
         inactiveTrackColor: AppColors.track,
         thumbColor: AppColors.primary,
-        overlayColor: Color(0x33FFB59C),
+        overlayColor: Color(0x330B5D3F),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.primary,
@@ -201,8 +202,8 @@ class AppTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceContainerHigh,
-        contentTextStyle: AppText.body(),
+        backgroundColor: AppColors.inverseSurface,
+        contentTextStyle: AppText.body(color: AppColors.inverseOnSurface),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.xlR),
       ),

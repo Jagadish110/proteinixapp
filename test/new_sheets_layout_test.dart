@@ -54,7 +54,7 @@ Future<void> pumpHost(
   await tester.pumpWidget(ProviderScope(
     overrides: [isPremiumProvider.overrideWith((ref) => false)],
     child: MaterialApp(
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       builder: (context, app) => MediaQuery(
         data: MediaQuery.of(context)
             .copyWith(textScaler: TextScaler.linear(textScale)),

@@ -90,7 +90,7 @@ Future<void> pumpPaywall(
           .overrideWith((ref) => offering(trial: trial)),
     ],
     child: MaterialApp(
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       builder: (context, app) => MediaQuery(
         data: MediaQuery.of(context)
             .copyWith(textScaler: TextScaler.linear(textScale)),

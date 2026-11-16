@@ -72,8 +72,8 @@ class _PillButtonState extends State<PillButton> {
         return (bg: AppColors.primaryContainer, fg: Colors.white, border: null);
       case PillTone.lime:
         return (
-          bg: AppColors.secondary,
-          fg: AppColors.onSecondary,
+          bg: AppColors.secondaryContainer,
+          fg: AppColors.onSecondaryContainer,
           border: null
         );
       case PillTone.outline:

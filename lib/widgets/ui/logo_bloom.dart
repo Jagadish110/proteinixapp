@@ -240,7 +240,7 @@ class _BloomPainter extends CustomPainter {
       Paint()
         ..strokeWidth = w
         ..strokeCap = StrokeCap.round
-        ..color = Colors.white.withValues(alpha: opacity),
+        ..color = AppColors.onSurface.withValues(alpha: opacity),
     );
 
     // The hook over the bowl, which is what makes it read as a P rather than a
@@ -255,7 +255,7 @@ class _BloomPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = w
         ..strokeCap = StrokeCap.round
-        ..color = Colors.white.withValues(alpha: opacity),
+        ..color = AppColors.onSurface.withValues(alpha: opacity),
     );
   }
 

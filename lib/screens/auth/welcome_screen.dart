@@ -10,6 +10,9 @@ import '../../widgets/ui/ui.dart';
 
 /// First-run landing screen: brand mark over a full-bleed food photograph,
 /// with a glassmorphic action container pinned to the bottom.
+/// Secondary text over the welcome photo's dark scrim.
+const _onPhotoMuted = Color(0xFFD6DDD8);
+
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -30,7 +33,7 @@ class WelcomeScreen extends StatelessWidget {
             alignment: const Alignment(0.35, 0),
             // A decode failure would otherwise leave white text on white.
             errorBuilder: (_, __, ___) =>
-                const ColoredBox(color: AppColors.background),
+                const ColoredBox(color: Color(0xFF10201A)),
           ),
 
           // Scrim. Light through the middle so the food still reads, weighted
@@ -58,15 +61,17 @@ class WelcomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Spacer(flex: 3),
+                  // This screen is a photograph under a dark scrim, so its
+                  // text is light on purpose and does not follow the theme.
                   Text(AppStrings.appName,
-                      style: AppText.display(color: AppColors.primary)),
+                      style: AppText.display(color: Colors.white)),
                   const SizedBox(height: 8),
                   Text(AppStrings.tagline.toUpperCase(),
-                      style: AppText.labelCaps(size: 12)),
+                      style: AppText.labelCaps(size: 12, color: _onPhotoMuted)),
                   const Spacer(flex: 2),
                   Text(
                     AppStrings.welcomeHeadline,
-                    style: AppText.headlineLg()
+                    style: AppText.headlineLg(color: Colors.white)
                         .copyWith(fontSize: 30, height: 1.25),
                   ),
                   const SizedBox(height: 12),
@@ -74,7 +79,7 @@ class WelcomeScreen extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 320),
                     child: Text(
                       AppStrings.welcomeBody,
-                      style: AppText.body(color: AppColors.onSurfaceVariant)
+                      style: AppText.body(color: _onPhotoMuted)
                           .copyWith(height: 1.6),
                     ),
                   ),
@@ -121,7 +126,7 @@ class _GlassActions extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow.withValues(alpha: 0.5),
+            color: const Color(0x80101010),
             borderRadius: AppRadius.cardR,
             border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
@@ -139,13 +144,13 @@ class _GlassActions extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('Already have an account?',
-                      style: AppText.body(color: AppColors.onSurfaceVariant)),
+                      style: AppText.body(color: _onPhotoMuted)),
                   const SizedBox(width: 6),
                   GestureDetector(
                     onTap: onSignIn,
                     behavior: HitTestBehavior.opaque,
                     child: Text(AppStrings.signIn,
-                        style: AppText.bodyBold(color: AppColors.primary)),
+                        style: AppText.bodyBold(color: Colors.white)),
                   ),
                 ],
               ),
@@ -157,7 +162,7 @@ class _GlassActions extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'Explore without an account',
-                    style: AppText.bodyBold(color: AppColors.onSurfaceVariant),
+                    style: AppText.bodyBold(color: _onPhotoMuted),
                   ),
                 ),
               ),
