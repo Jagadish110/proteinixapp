@@ -51,7 +51,6 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.0.0
-  google_mobile_ads: ^9.2.0
   mobile_scanner: ^7.5.0
   http: ^1.6.0
 

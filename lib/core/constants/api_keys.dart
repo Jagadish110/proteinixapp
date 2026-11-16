@@ -18,14 +18,6 @@ class ApiKeys {
   /// would lock the AI features behind a door with no handle.
   static bool get enforcePremium => _optional('ENFORCE_PREMIUM') == 'true';
 
-  /// The AdMob banner unit for the home dashboard. Empty means no ads at all:
-  /// the ad SDK is never initialised and no banner is ever requested.
-  ///
-  /// The matching *app* id is `ADMOB_APP_ID`, read from the same `.env` by
-  /// `android/app/build.gradle.kts` because it has to be in the manifest.
-  static String get admobBannerUnitId =>
-      _optional('ADMOB_BANNER_UNIT_ID') ?? '';
-
   /// Reads a key that may legitimately be absent, without throwing when
   /// dotenv itself was never loaded (widget tests, a missing `.env`).
   static String? _optional(String key) {

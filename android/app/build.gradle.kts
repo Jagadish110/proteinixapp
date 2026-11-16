@@ -17,19 +17,6 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
-// The Flutter app's .env, read here only for ADMOB_APP_ID, which has to end
-// up in the manifest and so cannot be read at runtime like the other keys.
-// A missing file or key is not an error: the build falls back to Google's
-// public sample AdMob app id, which can only ever serve test ads.
-val dotEnv = Properties().apply {
-    val file = rootProject.file("../.env")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
-val admobAppId: String = dotEnv.getProperty("ADMOB_APP_ID")
-    ?.trim()
-    ?.takeIf { it.isNotEmpty() }
-    ?: "ca-app-pub-3940256099942544~3347511713"
-
 android {
     namespace = "com.proteinix"
     compileSdk = 36
@@ -41,7 +28,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
-        manifestPlaceholders["admobAppId"] = admobAppId
     }
     compileOptions { isCoreLibraryDesugaringEnabled = true; sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

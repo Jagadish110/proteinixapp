@@ -130,8 +130,7 @@ void main() {
     expect(text, contains('Cancel any time in one tap'));
   });
 
-  testWidgets('monthly has no trial and says what it charges',
-      (tester) async {
+  testWidgets('monthly has no trial and says what it charges', (tester) async {
     await pumpPaywall(tester);
 
     await scrollTo(tester, find.text('Monthly'));
@@ -157,13 +156,5 @@ void main() {
     await pumpPaywall(tester, feature: ProFeature.photoScan);
     expect(find.text("You've used today's free scans"), findsOneWidget);
     expect(find.textContaining('3 photo scans a day'), findsOneWidget);
-  });
-
-  testWidgets('lists no ads among the Pro perks', (tester) async {
-    await pumpPaywall(tester);
-    // Checked in order down the list: it builds lazily, so a row scrolled
-    // past is no longer in the tree.
-    await scrollTo(tester, find.text('Unlimited photo scans'));
-    await scrollTo(tester, find.text('No ads'));
   });
 }

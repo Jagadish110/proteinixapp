@@ -46,7 +46,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       Icons.auto_awesome_rounded,
       'Personal AI coach that knows your daily numbers'
     ),
-    (Icons.block_rounded, 'No ads'),
   ];
 
   String get _headline => switch (widget.feature) {

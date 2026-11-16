@@ -156,14 +156,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
-        <!-- AdMob app id. The Google Mobile Ads SDK reads this at process
-             start and crashes the app if it is missing, whether or not an ad
-             is ever requested — so it is always present. The value comes from
-             ADMOB_APP_ID in the project's .env (see build.gradle.kts), and
-             falls back to Google's public sample id, which only ever serves
-             test ads. -->
-        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="${admobAppId}"/>
         <meta-data android:name="flutterEmbedding" android:value="2"/>
         <!-- Impeller-over-Vulkan has documented artifacts on some MediaTek/Mali
              GPUs — small triangular spikes bleeding past the edge of any circle

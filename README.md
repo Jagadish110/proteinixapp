@@ -64,11 +64,6 @@ Optional keys, all off when absent:
 # Turns the Free / Pro split on. Leave unset until the Play products and the
 # RevenueCat `premium` entitlement exist, or the paywall has nothing to sell.
 ENFORCE_PREMIUM=true
-
-# AdMob. With no banner unit the ad SDK is never started and no ad is shown.
-# Without an app id the build uses Google's sample id (test ads only).
-ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
-ADMOB_BANNER_UNIT_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 ```
 
 ### 6. Plans (Free / Pro)
@@ -79,7 +74,6 @@ ADMOB_BANNER_UNIT_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 | Photo scans | 3 a day | unlimited |
 | AI text and voice logging | — | included |
 | AI Coach (30 messages a day) | — | included |
-| Banner ad on the home dashboard | yes | no |
 
 Set up in Play Console and RevenueCat, not in code:
 
@@ -96,11 +90,6 @@ Google Play's cancel screen for the subscription.
 The 3-scans and 30-messages limits are counted on the device
 (`lib/services/plan_limits.dart`). The server-side quota in `gemini-proxy` is
 unchanged and remains the hard ceiling.
-
-**Ads and health data.** The only ad is one banner at the bottom of the home
-dashboard (`lib/widgets/home_banner_ad.dart`). Requests carry no keywords, user
-id or any app data — see the rules at the top of `lib/services/ad_service.dart`.
-Health Connect steps and sleep must never be passed to the ad SDK.
 
 ### 7. Build
 ```bash

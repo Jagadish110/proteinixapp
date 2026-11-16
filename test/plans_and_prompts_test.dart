@@ -24,8 +24,7 @@ UserProfile profile({
       waterGoalMl: water,
     );
 
-DailyLog log({int calories = 0, double protein = 0, int water = 0}) =>
-    DailyLog(
+DailyLog log({int calories = 0, double protein = 0, int water = 0}) => DailyLog(
       userId: 'u1',
       date: DateTime(2026, 11, 16),
       caloriesConsumed: calories,
@@ -84,8 +83,7 @@ void main() {
       expect(await PlanLimits.freeScansLeft(), 3);
     });
 
-    test('each recorded scan uses one, and it never goes below zero',
-        () async {
+    test('each recorded scan uses one, and it never goes below zero', () async {
       await PlanLimits.recordScan();
       expect(await PlanLimits.freeScansLeft(), 2);
       await PlanLimits.recordScan();
@@ -206,22 +204,19 @@ void main() {
 
       test('first ever open greets nobody', () async {
         expect(
-            await WelcomeBackService.checkIn(now: DateTime(2026, 11, 9, 8)),
-            0);
+            await WelcomeBackService.checkIn(now: DateTime(2026, 11, 9, 8)), 0);
       });
 
       test('consecutive days greet nobody', () async {
         await WelcomeBackService.checkIn(now: DateTime(2026, 11, 9, 8));
-        expect(
-            await WelcomeBackService.checkIn(now: DateTime(2026, 11, 10, 8)),
+        expect(await WelcomeBackService.checkIn(now: DateTime(2026, 11, 10, 8)),
             0);
       });
 
       test('returning after missed days greets, and keeps greeting that day',
           () async {
         await WelcomeBackService.checkIn(now: DateTime(2026, 11, 9, 8));
-        expect(
-            await WelcomeBackService.checkIn(now: DateTime(2026, 11, 13, 8)),
+        expect(await WelcomeBackService.checkIn(now: DateTime(2026, 11, 13, 8)),
             3);
         // A second build of the dashboard the same day must not lose it.
         expect(
@@ -237,8 +232,7 @@ void main() {
         expect(
             await WelcomeBackService.checkIn(now: DateTime(2026, 11, 13, 19)),
             0);
-        expect(
-            await WelcomeBackService.checkIn(now: DateTime(2026, 11, 14, 8)),
+        expect(await WelcomeBackService.checkIn(now: DateTime(2026, 11, 14, 8)),
             0);
       });
     });

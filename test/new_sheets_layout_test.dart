@@ -7,7 +7,6 @@ import 'package:proteinix/providers/subscription_provider.dart';
 import 'package:proteinix/screens/home/home_prompts.dart';
 import 'package:proteinix/screens/log/routine_sheets.dart';
 import 'package:proteinix/services/routine_service.dart';
-import 'package:proteinix/widgets/home_banner_ad.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The new sheets and cards, pumped at the narrowest phone width and a large
@@ -159,12 +158,5 @@ void main() {
     await pumpHost(tester, const WelcomeBackCard(name: 'Asha'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Welcome back'), findsNothing);
-  });
-
-  testWidgets('banner takes no space and makes no request when unconfigured',
-      (tester) async {
-    await pumpHost(tester, const Center(child: HomeBannerAd()));
-    await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(HomeBannerAd)), Size.zero);
   });
 }

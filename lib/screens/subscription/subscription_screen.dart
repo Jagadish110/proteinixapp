@@ -110,8 +110,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                               'the period you have already paid for.'
                           : 'Renewal is off. You keep Pro until it ends.',
                       textAlign: TextAlign.center,
-                      style:
-                          AppText.bodySm(color: AppColors.onSurfaceVariant),
+                      style: AppText.bodySm(color: AppColors.onSurfaceVariant),
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),
@@ -205,8 +204,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           const SizedBox(height: AppSpacing.md),
           const Divider(color: AppColors.outline),
           const SizedBox(height: AppSpacing.sm),
-          Text('Pro adds unlimited scans, voice logging, the AI Coach and '
-              'no ads.',
+          Text('Pro adds unlimited scans, voice logging and the AI Coach.',
               style: AppText.bodySm(color: AppColors.onSurfaceVariant)),
           const SizedBox(height: AppSpacing.sm),
           _priceRow('Monthly', _price(_offering?.monthly, '₹49', 'mo')),

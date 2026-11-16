@@ -29,7 +29,8 @@ Map<String, dynamic> offProduct({
 void main() {
   group('BarcodeProduct.fromOpenFoodFacts', () {
     test('reads the label values per 100 g', () {
-      final p = BarcodeProduct.fromOpenFoodFacts('8901088136808', offProduct())!;
+      final p =
+          BarcodeProduct.fromOpenFoodFacts('8901088136808', offProduct())!;
       expect(p.name, 'Masala Oats');
       expect(p.brand, 'Saffola');
       expect(p.kcalPer100, 380);
@@ -79,9 +80,7 @@ void main() {
           BarcodeProduct.fromOpenFoodFacts(
               '1', offProduct(nutriments: {'proteins_100g': 5})),
           isNull);
-      expect(
-          BarcodeProduct.fromOpenFoodFacts(
-              '1', {'product_name': 'Mystery'}),
+      expect(BarcodeProduct.fromOpenFoodFacts('1', {'product_name': 'Mystery'}),
           isNull);
     });
 

@@ -2,7 +2,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../core/constants/api_keys.dart';
 
 /// Wraps RevenueCat for the app's single paid plan, Proteinix Pro: unlimited
-/// photo scans, voice and text logging, the AI Coach, and no ads.
+/// photo scans, voice and text logging, and the AI Coach.
 ///
 /// RevenueCat sits on top of Google Play Billing — every purchase, renewal
 /// and cancellation here is a Play subscription. Configure `premium` as the
