@@ -65,3 +65,4 @@ key.properties
 
 # Gradle output for the Android project.
 /android/build/
+/android/.kotlin/
