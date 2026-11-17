@@ -62,3 +62,6 @@ key.properties
 # repository faster than the source ever will.
 *.apk
 *.aab
+
+# Gradle output for the Android project.
+/android/build/
