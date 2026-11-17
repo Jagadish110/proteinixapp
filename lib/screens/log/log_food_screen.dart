@@ -633,46 +633,75 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                     ),
             ),
             const SizedBox(height: AppSpacing.md),
-            _bigAction(
-              title: 'Log with AI',
-              subtitle: 'Describe your meal in plain words',
-              icon: Icons.auto_awesome_rounded,
-              color: AppColors.primary,
-              onTap: () => context.push('/log-food/ai', extra: _mealType),
+            // Four ways in, as a 2×2 grid. The two free ones are coloured;
+            // the AI ones are white, and say "Pro" to a Free user.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _actionTile(
+                      title: 'Snap your plate',
+                      subtitle: _freeScansLeft == null
+                          ? 'Photo to calories'
+                          : _freeScansLeft == 0
+                              ? 'Free scans used today'
+                              : '$_freeScansLeft of '
+                                  '${PlanLimits.freeScansPerDay} free scans '
+                                  'left',
+                      icon: Icons.photo_camera_rounded,
+                      background: AppColors.primary,
+                      foreground: AppColors.onPrimary,
+                      muted: AppColors.primaryFixed,
+                      onTap: () async {
+                        await context.push('/scan', extra: _mealType);
+                        // A scan may just have been used.
+                        if (mounted) _loadFreeScans();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _actionTile(
+                      title: 'Scan barcode',
+                      subtitle: 'Always free',
+                      icon: Icons.qr_code_scanner_rounded,
+                      background: AppColors.secondaryContainer,
+                      foreground: AppColors.inverseSurface,
+                      muted: AppColors.onSecondaryFixed,
+                      onTap: () => context.push('/barcode', extra: _mealType),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
-            _bigAction(
-              title: 'Log by voice',
-              subtitle: 'Just say what you ate — hands free',
-              icon: Icons.mic_rounded,
-              color: AppColors.secondary,
-              onTap: () => context.push('/log-food/voice', extra: _mealType),
-            ),
-            const SizedBox(height: 12),
-            _bigAction(
-              title: 'Scan with camera',
-              subtitle: _freeScansLeft == null
-                  ? 'Point at your plate and let Proteinix estimate'
-                  : _freeScansLeft == 0
-                      ? "Today's ${PlanLimits.freeScansPerDay} free scans are "
-                          'used — unlimited on Pro'
-                      : '$_freeScansLeft of ${PlanLimits.freeScansPerDay} '
-                          'free scans left today',
-              icon: Icons.photo_camera_rounded,
-              color: AppColors.tertiary,
-              onTap: () async {
-                await context.push('/scan', extra: _mealType);
-                // A scan may just have been used.
-                if (mounted) _loadFreeScans();
-              },
-            ),
-            const SizedBox(height: 12),
-            _bigAction(
-              title: 'Scan barcode',
-              subtitle: 'Packaged food, straight from the label — free',
-              icon: Icons.qr_code_scanner_rounded,
-              color: AppColors.secondary,
-              onTap: () => context.push('/barcode', extra: _mealType),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _actionTile(
+                      title: 'Say it',
+                      subtitle: _freeScansLeft == null ? 'Hands free' : 'Pro',
+                      icon: Icons.mic_rounded,
+                      onTap: () =>
+                          context.push('/log-food/voice', extra: _mealType),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _actionTile(
+                      title: 'Describe it',
+                      subtitle:
+                          _freeScansLeft == null ? 'In plain words' : 'Pro',
+                      icon: Icons.edit_note_rounded,
+                      onTap: () =>
+                          context.push('/log-food/ai', extra: _mealType),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             SectionHeading(
@@ -753,49 +782,52 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     );
   }
 
-  Widget _bigAction({
+  /// One of the four logging tiles. White with ink text unless a colour
+  /// is given; [muted] is the subtitle colour on a coloured tile.
+  Widget _actionTile({
     required String title,
     required String subtitle,
     required IconData icon,
-    required Color color,
     required VoidCallback onTap,
+    Color background = AppColors.surfaceContainer,
+    Color foreground = AppColors.onSurface,
+    Color muted = AppColors.onSurfaceVariant,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+    final plain = background == AppColors.surfaceContainer;
+    return Material(
+      color: background,
+      borderRadius: AppRadius.xlR,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.xlR,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 128),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.xlR,
+            border: plain ? Border.all(color: AppColors.outline) : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: foreground, size: 26),
+              const SizedBox(height: 18),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, style: AppText.bodyBold()),
-                  const SizedBox(height: 1),
+                  Text(title,
+                      style: AppText.headlineMd(color: foreground)
+                          .copyWith(fontSize: 17)),
+                  const SizedBox(height: 3),
                   Text(subtitle,
-                      style: AppText.bodySm(color: AppColors.onSurfaceVariant)),
+                      style: AppText.bodySm(color: muted)
+                          .copyWith(fontWeight: FontWeight.w600)),
                 ],
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant, size: 18),
-          ],
+            ],
+          ),
         ),
       ),
     );

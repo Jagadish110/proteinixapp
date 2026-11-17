@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimens.dart';
@@ -27,6 +28,7 @@ import '../../services/supabase_service.dart';
 import '../../services/sync_service.dart';
 import '../../services/weight_checkin_service.dart';
 import '../../widgets/sleep_cycle_switch.dart';
+import 'home_hero_card.dart';
 import 'home_prompts.dart';
 import '../../widgets/ui/ui.dart';
 
@@ -564,8 +566,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     const SizedBox(height: AppSpacing.md),
                     // Both render nothing unless they have something to say.
                     WelcomeBackCard(name: profile?.name),
-                    const UsualMealCard(),
                     _carouselSection(profile, log),
+                    const SizedBox(height: AppSpacing.gutter),
+                    const UsualMealCard(),
                     const SizedBox(height: AppSpacing.md),
                     _StepsCard(profile: profile, log: log, pedo: _pedo),
                     const SizedBox(height: AppSpacing.gutter),
@@ -620,7 +623,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             controller: _carousel,
             onPageChanged: (i) => setState(() => _carouselIndex = i),
             children: [
-              _EnergyCard(profile: profile, log: log),
+              EnergyHeroCard(profile: profile, log: log),
               const _SleepCard(),
             ],
           ),
@@ -655,54 +658,57 @@ class _Header extends StatelessWidget {
   final UserProfile? profile;
   final int streak;
 
+  static String _greeting(DateTime now) {
+    final h = now.hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final first = profile?.name?.trim().split(RegExp(r'\s+')).first ?? '';
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              ProfileBadge(
-                name: profile?.name,
-                avatarUrl: profile?.avatarUrl,
-                onTap: () => context.push('/profile'),
+              Text(
+                DateFormat('EEEE, d MMMM').format(now),
+                style: AppText.bodySm(color: AppColors.onSurfaceVariant)
+                    .copyWith(fontWeight: FontWeight.w500, fontSize: 13),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      profile?.name?.trim().isNotEmpty == true
-                          ? profile!.name!
-                          : AppStrings.appFullName,
-                      style: AppText.headlineMd(),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    _StreakBadge(streak: streak),
-                  ],
-                ),
+              const SizedBox(height: 2),
+              Text(
+                first.isEmpty ? _greeting(now) : '${_greeting(now)}, $first',
+                style: AppText.headlineLg(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
         const SyncStatusWidget(),
-        const SizedBox(width: 6),
-        CircleIconButton(
-          icon: Icons.notifications_none_rounded,
-          color: AppColors.primary,
-          badge: true,
-          onTap: () => context.push('/notifications'),
+        const SizedBox(width: 8),
+        _StreakBadge(streak: streak),
+        const SizedBox(width: 10),
+        ProfileBadge(
+          name: profile?.name,
+          avatarUrl: profile?.avatarUrl,
+          size: 44,
+          ringColor: AppColors.primary,
+          onTap: () => context.push('/profile'),
         ),
       ],
     );
   }
 }
 
-/// Flame + day count under the header name.
+/// Flame + day count, as an amber pill beside the greeting.
 ///
 /// A soft glow breathes behind the flame whenever there's a streak to
 /// protect, and the flame bumps once when [streak] ticks up — the only
@@ -763,214 +769,82 @@ class _StreakBadgeState extends State<_StreakBadge>
   Widget build(BuildContext context) {
     final hasStreak = widget.streak > 0;
 
-    return GestureDetector(
-      onTap: _showDetail,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 22,
-            height: 22,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (hasStreak)
-                  AnimatedBuilder(
-                    animation: _breathe,
-                    builder: (context, _) {
-                      final t = _breathe.value;
-                      return Container(
-                        width: 15 + 9 * t,
-                        height: 15 + 9 * t,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primaryContainer
-                              .withValues(alpha: (1 - t) * 0.35),
-                        ),
-                      );
-                    },
-                  ),
-                AnimatedBuilder(
-                  animation: _bump,
-                  builder: (context, child) => Transform.scale(
-                    scale: 1 + 0.5 * _peak(_bump.value),
-                    child: child,
-                  ),
-                  child: const Icon(Icons.local_fire_department_rounded,
-                      color: AppColors.primaryContainer, size: 15),
+    const fg = AppColors.onSecondaryFixedVariant;
+
+    return Semantics(
+      button: true,
+      label: hasStreak ? '${widget.streak} day streak' : 'No streak yet',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: _showDetail,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+          decoration: BoxDecoration(
+            color: AppColors.secondaryFixed,
+            borderRadius: AppRadius.pill,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (hasStreak)
+                      AnimatedBuilder(
+                        animation: _breathe,
+                        builder: (context, _) {
+                          final t = _breathe.value;
+                          return Container(
+                            width: 15 + 9 * t,
+                            height: 15 + 9 * t,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.secondaryContainer
+                                  .withValues(alpha: (1 - t) * 0.5),
+                            ),
+                          );
+                        },
+                      ),
+                    AnimatedBuilder(
+                      animation: _bump,
+                      builder: (context, child) => Transform.scale(
+                        scale: 1 + 0.5 * _peak(_bump.value),
+                        child: child,
+                      ),
+                      child: const Icon(Icons.local_fire_department_rounded,
+                          color: fg, size: 16),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 2),
+              AnimatedBuilder(
+                animation: _bump,
+                builder: (context, child) => Opacity(
+                  opacity: 1 - 0.5 * _peak(_bump.value),
+                  child: child,
+                ),
+                child: Text(
+                  hasStreak
+                      ? '${widget.streak} day${widget.streak == 1 ? '' : 's'}'
+                      : 'Start',
+                  style: AppText.bodyBold(color: fg).copyWith(fontSize: 13),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 4),
-          AnimatedBuilder(
-            animation: _bump,
-            builder: (context, child) => Opacity(
-              opacity: 1 - 0.5 * _peak(_bump.value),
-              child: child,
-            ),
-            child: Text(
-                hasStreak
-                    ? '${widget.streak} day${widget.streak == 1 ? '' : 's'} streak'
-                    : 'Daily streak',
-                style: AppText.labelCaps(
-                    color: AppColors.primaryContainer, size: 11)),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 // ── Carousel card 1: energy & macros ──────────────────────────────────────
-class _EnergyCard extends StatelessWidget {
-  const _EnergyCard({required this.profile, required this.log});
-
-  final UserProfile? profile;
-  final DailyLog? log;
-
-  @override
-  Widget build(BuildContext context) {
-    final goal = profile?.calorieGoal ?? 2000;
-    final eaten = log?.caloriesConsumed ?? 0;
-    final left = (goal - eaten).clamp(0, 99999);
-
-    return TerraCard(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(child: SectionLabel(AppStrings.dailyEnergy)),
-              _figure('Left', '$left', AppColors.primary),
-              Container(
-                height: 32,
-                width: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                color: AppColors.outline,
-              ),
-              _figure('Eaten', '$eaten', AppColors.onSurface),
-            ],
-          ),
-          const Spacer(),
-          _TodayProgress(profile: profile, log: log),
-          const Spacer(),
-          MacroGaugeRow(
-            macros: [
-              MacroSpec(
-                label: 'Protein',
-                current: log?.proteinG ?? 0,
-                goal: profile?.proteinGoalG ?? 150,
-                color: AppColors.protein,
-                icon: Icons.kebab_dining_rounded,
-              ),
-              MacroSpec(
-                label: 'Carbs',
-                current: log?.carbsG ?? 0,
-                goal: profile?.carbsGoalG ?? 260,
-                color: AppColors.carbs,
-                icon: Icons.bakery_dining_rounded,
-              ),
-              MacroSpec(
-                label: 'Fats',
-                current: log?.fatG ?? 0,
-                goal: profile?.fatGoalG ?? 70,
-                color: AppColors.fat,
-                icon: Icons.water_drop_rounded,
-              ),
-              MacroSpec(
-                label: 'Fiber',
-                current: log?.fiberG ?? 0,
-                goal: profile?.fiberGoalG ?? 25,
-                color: AppColors.fiber,
-                icon: Icons.eco_rounded,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _figure(String label, String value, Color color) => Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(label.toUpperCase(), style: AppText.labelCaps(size: 10)),
-          const SizedBox(height: 2),
-          Text(value, style: AppText.headlineMd(color: color)),
-        ],
-      );
-}
-
-/// Four goals as concentric rings, with a legend of what is still owed.
-///
-/// Macros collapse to a single ring — the mean of the four macro ratios — so
-/// the stack stays readable; the gauges below this block carry the breakdown.
-/// Each ring reuses the colour that metric already has elsewhere in the app:
-/// lime for steps, peach for intake, blue for water, violet for sleep.
-class _TodayProgress extends StatelessWidget {
-  const _TodayProgress({required this.profile, required this.log});
-
-  final UserProfile? profile;
-  final DailyLog? log;
-
-  double _macroMean() {
-    final ratios = <double>[
-      _ratio(log?.proteinG ?? 0, profile?.proteinGoalG ?? 150),
-      _ratio(log?.carbsG ?? 0, profile?.carbsGoalG ?? 260),
-      _ratio(log?.fatG ?? 0, profile?.fatGoalG ?? 70),
-      _ratio(log?.fiberG ?? 0, profile?.fiberGoalG ?? 25),
-    ];
-    return ratios.reduce((a, b) => a + b) / ratios.length;
-  }
-
-  static double _ratio(double current, double goal) =>
-      goal <= 0 ? 0 : (current / goal).clamp(0.0, 1.0).toDouble();
-
-  @override
-  Widget build(BuildContext context) {
-    // The macro ring is already a 0–1 mean, so it is fed as a fraction of 1.
-    final rings = <RingSpec>[
-      RingSpec(
-        label: 'Steps',
-        current: (log?.steps ?? 0).toDouble(),
-        goal: (profile?.stepsGoal ?? 10000).toDouble(),
-        color: AppColors.secondary,
-      ),
-      RingSpec(
-        label: 'Macros',
-        current: _macroMean(),
-        goal: 1,
-        color: AppColors.primary,
-      ),
-      RingSpec(
-        label: 'Water',
-        current: (log?.waterMl ?? 0).toDouble(),
-        goal: (profile?.waterGoalMl ?? 2500).toDouble(),
-        color: AppColors.water,
-        unit: 'ml',
-      ),
-      RingSpec(
-        label: 'Sleep',
-        current: log?.sleepHrs ?? 0,
-        goal: profile?.sleepGoalHrs ?? 8,
-        color: AppColors.sleep,
-        unit: 'h',
-        // Sleep is the one metric nothing records unless Sleep Guard ran, so
-        // zero means "not tracked" rather than "none" — the ring dims out
-        // instead of claiming a night of no sleep.
-        hasData: (log?.sleepHrs ?? 0) > 0,
-      ),
-    ];
-
-    return TodayProgressPanel(
-      title: AppStrings.todaysProgress,
-      rings: rings,
-    );
-  }
-}
 
 // ── Carousel card 2: sleep cycle ──────────────────────────────────────────
 /// Sets the sleep window and switches tracking on, with no separate setup
@@ -1099,7 +973,8 @@ class _SleepCardState extends State<_SleepCard> with WidgetsBindingObserver {
       // "it stops on its own" is the half of the deal the old Stop button
       // implied was the user's job.
       final at = SleepTrackingService.formatTime(_status.bedtime, 'bedtime');
-      final until = SleepTrackingService.formatTime(_status.wake, 'your wake time');
+      final until =
+          SleepTrackingService.formatTime(_status.wake, 'your wake time');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(!turningOn

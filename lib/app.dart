@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_links/app_links.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/supabase_service.dart';
 import 'core/constants/strings.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/auth/email_confirmation_screen.dart';
@@ -177,14 +177,14 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
     // Push anything queued from a previous offline session, then refresh the
     // cache. The auth listener in build() is the reliable trigger; this covers
     // the case where the session was already restored before we subscribed.
-    final uid = Supabase.instance.client.auth.currentUser?.id;
+    final uid = SupabaseService.currentUserId;
     if (uid != null) unawaited(_syncOnStart(uid));
 
     // A reconnect mid-session flushes the queue (ConnectivityService does that)
     // and then needs the screens to repaint with whatever came back.
     _onlineSub = ConnectivityService.onStatusChange.listen((online) {
       if (!online) return;
-      final id = Supabase.instance.client.auth.currentUser?.id;
+      final id = SupabaseService.currentUserId;
       if (id != null) unawaited(_syncOnStart(id));
     });
     final launch = NotificationService.launchPayload;
@@ -205,7 +205,7 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
   Future<void> _drainLaunchRoute() async {
     final route = await SleepTrackingService.consumeLaunchRoute();
     if (route == null || !mounted) return;
-    if (Supabase.instance.client.auth.currentSession == null) return;
+    if (!SupabaseService.isLoggedIn) return;
     _router.go(route);
   }
 
@@ -214,7 +214,7 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
   /// action button was used.
   Future<void> _handleNotificationTap(String payload) async {
     // Never yank a signed-out user out of the auth flow.
-    if (Supabase.instance.client.auth.currentSession == null) return;
+    if (!SupabaseService.isLoggedIn) return;
 
     final hash = payload.indexOf('#');
     final action = hash == -1 ? null : payload.substring(hash + 1);
@@ -255,7 +255,7 @@ class _ProteinixAppState extends ConsumerState<ProteinixApp> {
   Future<void> _handleAuthDeepLink(Uri uri) async {
     // Give Supabase a moment to exchange the code in the URL for a session.
     await Future.delayed(const Duration(milliseconds: 500));
-    if (Supabase.instance.client.auth.currentSession == null) return;
+    if (!SupabaseService.isLoggedIn) return;
 
     // Same rule as the login and signup screens — see [postSignInRoute].
     final route = await postSignInRoute();

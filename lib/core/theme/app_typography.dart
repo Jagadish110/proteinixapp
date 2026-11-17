@@ -2,14 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Hanken Grotesk type scale.
+/// Two-family type scale: Space Grotesk for headings and the big numbers,
+/// Inter for everything people read.
 ///
-/// Hierarchy is carried by weight and colour rather than large size jumps —
-/// bold/extrabold headings, muted regular body, and an uppercase tracked
-/// `labelCaps` style that gives the UI its "cockpit" feel.
+/// The display face carries the brand — its squared, slightly technical
+/// numerals are what make "62 / 110 g" look like a measurement rather than a
+/// sentence. Inter keeps body copy, labels and buttons quiet and legible at
+/// small sizes.
 class AppText {
   const AppText._();
 
+  /// Headings and numbers.
+  static TextStyle _display({
+    required double size,
+    required FontWeight weight,
+    double? height,
+    double? letterSpacing,
+    Color? color,
+  }) =>
+      GoogleFonts.spaceGrotesk(
+        fontSize: size,
+        fontWeight: weight,
+        height: height == null ? null : height / size,
+        letterSpacing: letterSpacing,
+        color: color ?? AppColors.onSurface,
+      );
+
+  /// Body, labels and buttons.
   static TextStyle _base({
     required double size,
     required FontWeight weight,
@@ -17,7 +36,7 @@ class AppText {
     double? letterSpacing,
     Color? color,
   }) =>
-      GoogleFonts.hankenGrotesk(
+      GoogleFonts.inter(
         fontSize: size,
         fontWeight: weight,
         height: height == null ? null : height / size,
@@ -26,31 +45,35 @@ class AppText {
       );
 
   /// Oversized hero numbers (calories, consistency score).
-  static TextStyle display({Color? color}) => _base(
+  static TextStyle display({Color? color}) => _display(
       size: 48,
-      weight: FontWeight.w800,
+      weight: FontWeight.w700,
       height: 52,
       letterSpacing: -1,
       color: color);
 
   /// Page titles — heavy and grounded.
-  static TextStyle headlineLg({Color? color}) =>
-      _base(size: 24, weight: FontWeight.w800, height: 32, color: color);
+  static TextStyle headlineLg({Color? color}) => _display(
+      size: 26,
+      weight: FontWeight.w700,
+      height: 32,
+      letterSpacing: -0.5,
+      color: color);
 
   /// Card titles / section titles.
   static TextStyle headlineMd({Color? color}) =>
-      _base(size: 18, weight: FontWeight.w700, height: 24, color: color);
+      _display(size: 18, weight: FontWeight.w700, height: 24, color: color);
 
   /// Big at-a-glance metrics (macro grams, step counts).
   static TextStyle data({Color? color}) =>
-      _base(size: 22, weight: FontWeight.w700, height: 28, color: color);
+      _display(size: 24, weight: FontWeight.w700, height: 28, color: color);
 
   /// Default reading text.
   static TextStyle body({Color? color}) =>
       _base(size: 14, weight: FontWeight.w400, height: 20, color: color);
 
   static TextStyle bodyBold({Color? color}) =>
-      _base(size: 14, weight: FontWeight.w700, height: 20, color: color);
+      _base(size: 14, weight: FontWeight.w600, height: 20, color: color);
 
   static TextStyle bodySm({Color? color}) =>
       _base(size: 12, weight: FontWeight.w400, height: 16, color: color);
@@ -69,7 +92,7 @@ class AppText {
       size: 15,
       weight: FontWeight.w700,
       height: 20,
-      letterSpacing: 0.3,
+      letterSpacing: 0.1,
       color: color);
 
   static TextTheme get theme => TextTheme(

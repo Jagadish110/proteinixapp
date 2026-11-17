@@ -263,53 +263,64 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     final log = ref.watch(dailyLogProvider(today));
     final nudge = CoachNudge.forToday(profile, log, DateTime.now());
 
-    final (icon, color) = switch (nudge.kind) {
-      CoachNudgeKind.protein => (Icons.bolt_rounded, AppColors.primary),
-      CoachNudgeKind.calories => (
-          Icons.local_fire_department_rounded,
-          AppColors.tertiary
-        ),
-      CoachNudgeKind.water => (Icons.water_drop_rounded, AppColors.secondary),
-      CoachNudgeKind.start => (Icons.restaurant_rounded, AppColors.primary),
-      CoachNudgeKind.onTrack => (
-          Icons.check_circle_rounded,
-          AppColors.secondary
-        ),
+    final icon = switch (nudge.kind) {
+      CoachNudgeKind.protein => Icons.bolt_rounded,
+      CoachNudgeKind.calories => Icons.local_fire_department_rounded,
+      CoachNudgeKind.water => Icons.water_drop_rounded,
+      CoachNudgeKind.start => Icons.restaurant_rounded,
+      CoachNudgeKind.onTrack => Icons.check_circle_rounded,
     };
 
-    return TerraCard(
-      borderColor: color.withValues(alpha: 0.35),
+    // The one dark card on this tab: ink ground, amber label and button,
+    // light text. Every pairing reads at 4.5:1 or better on the ink.
+    const amber = Color(0xFFFFD27A);
+    const body = Color(0xFFD6E2DB);
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppColors.inverseSurface,
+        borderRadius: AppRadius.cardR,
+        boxShadow: AppColors.cardShadow,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              IconBubble(icon: icon, color: color, size: 40, tinted: true),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("TODAY'S NUDGE",
-                        style: AppText.labelCaps(
-                            color: AppColors.onSurfaceVariant)),
-                    const SizedBox(height: 2),
-                    Text(nudge.headline, style: AppText.headlineMd()),
-                  ],
-                ),
-              ),
+              Icon(icon, color: amber, size: 18),
+              const SizedBox(width: 8),
+              Text("TODAY'S NUDGE",
+                  style: AppText.labelCaps(color: amber, size: 12)),
             ],
           ),
           const SizedBox(height: 12),
-          Text(nudge.body, style: AppText.body()),
+          Text(
+            nudge.headline,
+            style: AppText.display(color: AppColors.inverseOnSurface)
+                .copyWith(fontSize: 32, height: 1.08, letterSpacing: -0.8),
+          ),
+          const SizedBox(height: 10),
+          Text(nudge.body,
+              style: AppText.body(color: body).copyWith(fontSize: 15)),
           if (askable) ...[
-            const SizedBox(height: AppSpacing.sm),
-            PillButton(
-              label: 'Ask the coach about this',
-              icon: Icons.auto_awesome_rounded,
-              height: 48,
-              glow: false,
-              onPressed: _thinking ? null : () => _send(nudge.followUp),
+            const SizedBox(height: AppSpacing.md),
+            Material(
+              color: _thinking
+                  ? AppColors.secondaryContainer.withValues(alpha: 0.5)
+                  : AppColors.secondaryContainer,
+              borderRadius: AppRadius.pill,
+              child: InkWell(
+                borderRadius: AppRadius.pill,
+                onTap: _thinking ? null : () => _send(nudge.followUp),
+                child: SizedBox(
+                  height: 52,
+                  child: Center(
+                    child: Text('Ask the coach about this',
+                        style: AppText.button(color: AppColors.inverseSurface)),
+                  ),
+                ),
+              ),
             ),
           ],
         ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimens.dart';
-import '../../core/theme/app_typography.dart';
 
 class NavDestination {
   const NavDestination({required this.icon, required this.label});
@@ -9,11 +8,12 @@ class NavDestination {
   final String label;
 }
 
-/// Detached floating navigation bar.
+/// Detached floating navigation bar: a dark ink pill over the light ground.
 ///
-/// A rounded-rectangle highlight slides between destinations on tab change.
-/// The capture action sits inline in the middle slot rather than overhanging
-/// the bar, so nothing can clip it.
+/// Icons only, with each destination's label kept as its tooltip and
+/// accessibility label. A mint pill slides behind the active tab, and the
+/// capture action is the amber button in the middle slot — the brightest
+/// thing on the bar, because scanning a plate is the app's main action.
 ///
 /// Deliberately no BackdropFilter: a blur sitting over scrolling content has to
 /// re-read the backdrop every frame, which is the main source of scroll jank on
@@ -38,7 +38,13 @@ class FloatingNavBar extends StatelessWidget {
   final VoidCallback onCapture;
   final IconData captureIcon;
 
-  static const double _barHeight = 70;
+  static const double _barHeight = 68;
+
+  /// The bar's own palette. It is the one dark surface in a light app, so it
+  /// carries its own foreground colours rather than the theme's.
+  static const Color _barColor = AppColors.inverseSurface;
+  static const Color _idle = Color(0xFFC9D6CF);
+  static const Color _activeFill = AppColors.primaryFixedDim;
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +59,8 @@ class FloatingNavBar extends StatelessWidget {
         child: Container(
           height: _barHeight,
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
+            color: _barColor,
             borderRadius: AppRadius.pill,
-            border: Border.all(color: AppColors.outline),
             boxShadow: const [
               BoxShadow(
                   color: Color(0x2610201A),
@@ -66,8 +71,8 @@ class FloatingNavBar extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final slot = constraints.maxWidth / destinations.length;
-              const insetX = 6.0;
-              const insetY = 9.0;
+              const insetX = 4.0;
+              const insetY = 8.0;
 
               return Stack(
                 children: [
@@ -81,12 +86,14 @@ class FloatingNavBar extends StatelessWidget {
                     top: insetY,
                     bottom: insetY,
                     width: slot - insetX * 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.35),
+                    // Hidden behind the capture slot, which has its own fill.
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: currentIndex == captureIndex ? 0 : 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _activeFill,
+                          borderRadius: AppRadius.pill,
                         ),
                       ),
                     ),
@@ -133,50 +140,39 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: active ? 1 : 0),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            builder: (context, t, child) => Transform.translate(
-              offset: Offset(0, -1.5 * t),
-              child: Transform.scale(scale: 1 + 0.10 * t, child: child),
-            ),
-            child: Icon(
-              destination.icon,
-              size: 21,
-              color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 3),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 300),
-            style: AppText.labelCaps(
-              color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-              size: 9,
-            ).copyWith(
-              letterSpacing: 0,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-            ),
-            child: Text(
-              destination.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return Semantics(
+      button: true,
+      selected: active,
+      label: destination.label,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: destination.label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.pill,
+          child: Center(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: active ? 1 : 0),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              builder: (context, t, child) => Transform.scale(
+                scale: 1 + 0.08 * t,
+                child: child,
+              ),
+              child: Icon(
+                destination.icon,
+                size: 23,
+                color: active ? AppColors.inverseSurface : FloatingNavBar._idle,
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Middle-slot capture action — filled and inline, matching the highlight's
-/// soft-rectangle language.
+/// Middle-slot capture action — the amber pill in the centre of the bar.
 class _CaptureButton extends StatefulWidget {
   const _CaptureButton({required this.icon, required this.onTap});
 
@@ -192,26 +188,30 @@ class _CaptureButtonState extends State<_CaptureButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _down = true),
-        onTapCancel: () => setState(() => _down = false),
-        onTapUp: (_) => setState(() => _down = false),
-        onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _down ? 0.92 : 1,
-          duration: const Duration(milliseconds: 130),
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow:
-                  AppColors.glow(AppColors.primary, blur: 18, opacity: 0.4),
+    return Semantics(
+      button: true,
+      label: 'Scan a meal',
+      excludeSemantics: true,
+      child: Center(
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _down = true),
+          onTapCancel: () => setState(() => _down = false),
+          onTapUp: (_) => setState(() => _down = false),
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedScale(
+            scale: _down ? 0.92 : 1,
+            duration: const Duration(milliseconds: 130),
+            child: Container(
+              width: 60,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.secondaryContainer,
+                borderRadius: AppRadius.pill,
+              ),
+              child:
+                  Icon(widget.icon, color: AppColors.inverseSurface, size: 24),
             ),
-            child: Icon(widget.icon, color: AppColors.onPrimary, size: 24),
           ),
         ),
       ),

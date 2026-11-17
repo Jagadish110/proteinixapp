@@ -143,8 +143,8 @@ class _UsualMealCardState extends ConsumerState<UsualMealCard> {
           content: Text('${routine.name} added to ${slot.label} — '
               '$kcal kcal.')));
     } catch (_) {
-      messenger.showSnackBar(SnackBar(
-          content: Text("Couldn't log ${routine.name} — try again.")));
+      messenger.showSnackBar(
+          SnackBar(content: Text("Couldn't log ${routine.name} — try again.")));
     } finally {
       if (mounted) setState(() => _logging = false);
     }
@@ -158,8 +158,8 @@ class _UsualMealCardState extends ConsumerState<UsualMealCard> {
     if (slots.isEmpty) return const SizedBox.shrink();
     final now = DateTime.now();
     final key = MealScheduleService.currentKey(slots, now);
-    final slot = slots.firstWhere((s) => s.key == key,
-        orElse: () => slots.first);
+    final slot =
+        slots.firstWhere((s) => s.key == key, orElse: () => slots.first);
 
     // Already eaten: the suggestion has done its job, or was not needed.
     final today = AppDateUtils.toDateOnly(now);
@@ -188,8 +188,8 @@ class _UsualMealCardState extends ConsumerState<UsualMealCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('YOUR USUAL ${slot.label.toUpperCase()}',
-                      style: AppText.labelCaps(
-                          color: AppColors.onSurfaceVariant)),
+                      style:
+                          AppText.labelCaps(color: AppColors.onSurfaceVariant)),
                   const SizedBox(height: 2),
                   Text(usual.name,
                       maxLines: 1,
